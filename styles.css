@@ -26,3 +26,8 @@ fieldset{margin:0}.chat-app{display:grid;grid-template-columns:350px 1fr;min-hei
 .settings-dialog{border:1px solid rgba(210,160,255,.55);border-radius:16px;background:rgba(14,8,23,.94);color:var(--text);padding:0}.settings-dialog::backdrop{background:rgba(0,0,0,.42)}
 .settings-dialog form,.profile-view-content{padding:1rem;min-width:min(90vw,460px)}.rgb-grid{display:grid;gap:.55rem}.rgb-preview{border:1px solid rgba(173,114,255,.4);border-radius:10px;padding:.55rem;font-size:.82rem}.dialog-actions{display:flex;justify-content:flex-end;gap:.55rem}
 @media (max-width:900px){.chat-app{grid-template-columns:1fr}.sidebar{border-right:0;border-bottom:1px solid rgba(173,114,255,.25)}.composer{grid-template-columns:1fr 1fr}}
+
+.scroll-bottom-btn{position:absolute;right:1.6rem;bottom:6.2rem;z-index:4}
+.chat-header,.sidebar-actions{ -webkit-app-region: drag; user-select:none; }
+button,input,textarea,audio,img,.messages,.chat-list,.panel-block,.composer,.reply-preview,.person-card{ -webkit-app-region: no-drag; }
+.chat-window{position:relative;}

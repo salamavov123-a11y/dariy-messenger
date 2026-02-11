@@ -1,5 +1,5 @@
 const STORAGE_KEY = "dariyMessengerDB";
-const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1614283233556-f35b0c801ef1?auto=format&fit=crop&w=200&q=80";
+const DEFAULT_AVATAR = "https://zastavok.net/main/graphics/1451310565.jpg";
 const DEFAULT_PROFILE_BG_RGB = { r: 47, g: 22, b: 85 };
 
 const state = {
@@ -11,6 +11,7 @@ const state = {
   replyToMessageId: null,
   mediaRecorder: null,
   mediaChunks: [],
+  isAtBottom: true,
 };
 
 const db = loadDB();
@@ -58,6 +59,7 @@ const mediaInput = $("mediaInput");
 const composerHint = $("composerHint");
 const recordVoiceBtn = $("recordVoiceBtn");
 const replyPreview = $("replyPreview");
+const scrollToBottomBtn = $("scrollToBottomBtn");
 
 const settingsDialog = $("settingsDialog");
 const settingsForm = $("settingsForm");
@@ -94,6 +96,8 @@ composer.addEventListener("submit", handleMessageSend);
 settingsForm.addEventListener("submit", saveSettings);
 recordVoiceBtn.addEventListener("click", handleVoiceRecordToggle);
 closeProfileViewBtn.addEventListener("click", () => profileViewDialog.close());
+messages.addEventListener("scroll", updateScrollToBottomButton);
+scrollToBottomBtn.addEventListener("click", scrollToBottom);
 
 [bgRedInput, bgGreenInput, bgBlueInput].forEach((input) => input.addEventListener("input", updateRgbPreview));
 
@@ -114,6 +118,18 @@ function persistDB() {
 function normalizeDB() {
   db.users = Array.isArray(db.users) ? db.users : [];
   db.chats = Array.isArray(db.chats) ? db.chats : [];
+
+  const blockedUsernames = new Set(["cyberguest", "neonadmin", "neoadmin"]);
+  const removedIds = new Set(
+    db.users.filter((u) => blockedUsernames.has((u.username || "").toLowerCase())).map((u) => u.id),
+  );
+  db.users = db.users.filter((u) => !removedIds.has(u.id));
+  db.chats = db.chats
+    .map((chat) => ({ ...chat, memberIds: (chat.memberIds || []).filter((id) => !removedIds.has(id)) }))
+    .filter((chat) => chat.memberIds && chat.memberIds.length >= 2);
+  if (removedIds.has(db.sessionUserId)) {
+    db.sessionUserId = null;
+  }
 
   for (const user of db.users) {
     user.status = user.status || {};
@@ -136,14 +152,9 @@ function normalizeDB() {
 }
 
 function seedDB() {
-  if (db.users.length > 0) return;
-  const admin = makeUser("neonadmin", "1234", { avatarUrl: DEFAULT_AVATAR });
-  const guest = makeUser("cyberguest", "1234", {
-    avatarUrl: "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&w=200&q=80",
-    profileBgRgb: { r: 28, g: 14, b: 48 },
-  });
-  guest.status.isOnline = true;
-  db.users.push(admin, guest);
+  if (!Array.isArray(db.users)) {
+    db.users = [];
+  }
   persistDB();
 }
 
@@ -612,7 +623,23 @@ function renderMessages() {
     messages.appendChild(bubble);
   }
 
+  if (state.isAtBottom) {
+    messages.scrollTop = messages.scrollHeight;
+  }
+  updateScrollToBottomButton();
+}
+
+function scrollToBottom() {
   messages.scrollTop = messages.scrollHeight;
+  state.isAtBottom = true;
+  updateScrollToBottomButton();
+}
+
+function updateScrollToBottomButton() {
+  const threshold = 40;
+  const nearBottom = messages.scrollHeight - messages.scrollTop - messages.clientHeight < threshold;
+  state.isAtBottom = nearBottom;
+  scrollToBottomBtn.classList.toggle("hidden", nearBottom);
 }
 
 function formatMessageDate(value) {
