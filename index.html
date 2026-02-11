@@ -51,12 +51,16 @@
             <button id="chatsBtn" class="side-btn active" type="button">Чаты</button>
             <button id="createChatBtn" class="side-btn" type="button">Создать чат</button>
             <button id="settingsBtn" class="side-btn" type="button">Настройки</button>
-            <button id="logoutBtn" class="side-btn danger" type="button">Выйти</button>
+            <button id="logoutBtn" class="side-btn danger" type="button">Выйти из аккаунта</button>
+            <button id="exitAppBtn" class="side-btn danger" type="button">Выход</button>
           </div>
 
           <div id="chatListPanel" class="panel-block">
             <h3>Список чатов</h3>
             <div id="chatList" class="chat-list"></div>
+
+            <h3>Личные сообщения</h3>
+            <div id="peopleList" class="chat-list"></div>
           </div>
 
           <form id="createChatPanel" class="panel-block hidden stack-form compact">
@@ -82,9 +86,12 @@
           <div id="messages" class="messages"></div>
 
           <form id="composer" class="composer">
-            <input id="messageInput" type="text" placeholder="Напишите сообщение..." maxlength="300" required />
+            <input id="messageInput" type="text" placeholder="Напишите сообщение..." maxlength="300" />
+            <input id="mediaInput" type="file" accept="image/*,audio/*" />
+            <button id="recordVoiceBtn" class="ghost" type="button">🎙️ Голос</button>
             <button class="primary" type="submit">Отправить</button>
           </form>
+          <p id="composerHint" class="hint"></p>
         </section>
       </section>
     </main>
@@ -118,6 +125,17 @@
           <button class="primary" id="saveSettingsBtn" value="default">Сохранить</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog id="profileViewDialog" class="settings-dialog">
+      <div class="stack-form profile-view-content">
+        <h3>Профиль пользователя</h3>
+        <div id="profileViewCard" class="profile-card"></div>
+        <p id="profileViewMeta" class="muted"></p>
+        <div class="dialog-actions">
+          <button id="closeProfileViewBtn" class="primary" type="button">Закрыть</button>
+        </div>
+      </div>
     </dialog>
 
     <script src="app.js"></script>
