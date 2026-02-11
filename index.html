@@ -43,6 +43,7 @@
             <div>
               <p class="muted">Пользователь</p>
               <h2 id="profileName">—</h2>
+              <p id="profileStatus" class="user-status"><span class="status-dot online"></span>В сети</p>
             </div>
           </div>
 
@@ -64,10 +65,10 @@
               Название чата
               <input id="newChatName" required maxlength="36" />
             </label>
-            <label>
-              Участники (логины через запятую)
-              <input id="newChatUsers" placeholder="например: anna, ivan" />
-            </label>
+            <fieldset>
+              <legend>Выберите участников</legend>
+              <div id="newChatUserList" class="user-select-list"></div>
+            </fieldset>
             <button class="primary" type="submit">Создать</button>
             <p id="createChatHint" class="hint"></p>
           </form>
@@ -92,13 +93,22 @@
       <form id="settingsForm" class="stack-form" method="dialog">
         <h3>Настройки профиля</h3>
         <label>
-          Ссылка на аватар
-          <input id="avatarUrlInput" placeholder="https://..." />
+          Загрузить аватар (файл)
+          <input id="avatarFileInput" type="file" accept="image/*" />
         </label>
         <label>
-          Ссылка на фон профиля
-          <input id="profileBgInput" placeholder="https://..." />
+          Или ссылка на аватар
+          <input id="avatarUrlInput" placeholder="https://..." />
         </label>
+        <fieldset>
+          <legend>Фон карточки профиля (RGB)</legend>
+          <div class="rgb-grid">
+            <label>R <input id="bgRedInput" type="range" min="0" max="255" value="47" /></label>
+            <label>G <input id="bgGreenInput" type="range" min="0" max="255" value="22" /></label>
+            <label>B <input id="bgBlueInput" type="range" min="0" max="255" value="85" /></label>
+          </div>
+          <p id="profileBgPreview" class="rgb-preview">rgb(47, 22, 85)</p>
+        </fieldset>
         <label>
           Цвет рамки аватара
           <input id="avatarBorderInput" type="color" value="#c77dff" />

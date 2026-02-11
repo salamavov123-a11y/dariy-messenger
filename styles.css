@@ -50,6 +50,32 @@ p {
   font-size: 0.86rem;
 }
 
+.user-status {
+  margin-top: 0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #caafff;
+  font-size: 0.84rem;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 0.2rem;
+}
+
+.status-dot.online {
+  background: #53ffaf;
+  box-shadow: 0 0 8px rgba(83, 255, 175, 0.7);
+}
+
+.status-dot.offline {
+  background: #8a7aa1;
+}
+
 .glow {
   position: fixed;
   pointer-events: none;
@@ -146,12 +172,26 @@ p {
   font-size: 0.9rem;
 }
 
-input {
+input,
+fieldset {
   border: 1px solid rgba(180, 119, 255, 0.45);
   border-radius: 12px;
   background: rgba(30, 20, 47, 0.78);
   color: var(--text);
   padding: 0.65rem 0.8rem;
+}
+
+fieldset {
+  margin: 0;
+}
+
+legend {
+  color: var(--muted);
+  padding: 0 0.4rem;
+}
+
+input[type='range'] {
+  padding: 0;
 }
 
 .chat-app {
@@ -236,6 +276,32 @@ input {
   border-color: rgba(217, 160, 255, 0.8);
 }
 
+.chat-participants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.6rem;
+  align-items: center;
+  margin-top: 0.2rem;
+}
+
+.user-select-list {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.user-select-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  padding: 0.45rem;
+  border-radius: 10px;
+  background: rgba(46, 30, 68, 0.65);
+}
+
 .compact label {
   font-size: 0.84rem;
 }
@@ -279,6 +345,18 @@ input {
   color: #d9c4f5;
 }
 
+.bubble p {
+  margin: 0;
+}
+
+.bubble time {
+  margin-top: 0.38rem;
+  display: block;
+  font-size: 0.76rem;
+  color: #c7afea;
+  text-align: right;
+}
+
 .bubble.outgoing {
   margin-left: auto;
   background: linear-gradient(135deg, rgba(134, 59, 226, 0.78), rgba(96, 43, 175, 0.82));
@@ -309,6 +387,18 @@ input {
 .settings-dialog form {
   padding: 1rem;
   min-width: min(90vw, 430px);
+}
+
+.rgb-grid {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.rgb-preview {
+  border: 1px solid rgba(173, 114, 255, 0.4);
+  border-radius: 10px;
+  padding: 0.55rem;
+  font-size: 0.82rem;
 }
 
 .dialog-actions {

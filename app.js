@@ -1,6 +1,7 @@
 const STORAGE_KEY = "dariyMessengerDB";
 const DEFAULT_AVATAR =
   "https://images.unsplash.com/photo-1614283233556-f35b0c801ef1?auto=format&fit=crop&w=200&q=80";
+const DEFAULT_PROFILE_BG_RGB = { r: 47, g: 22, b: 85 };
 
 const state = {
   mode: "login",
@@ -9,6 +10,7 @@ const state = {
 };
 
 const db = loadDB();
+normalizeDB();
 seedDB();
 
 const authScreen = document.getElementById("authScreen");
@@ -22,6 +24,7 @@ const authUsername = document.getElementById("authUsername");
 const authPassword = document.getElementById("authPassword");
 
 const profileName = document.getElementById("profileName");
+const profileStatus = document.getElementById("profileStatus");
 const profileCard = document.getElementById("profileCard");
 const avatarImage = document.getElementById("avatarImage");
 const avatarFrame = document.getElementById("avatarFrame");
@@ -37,7 +40,7 @@ const createChatHint = document.getElementById("createChatHint");
 
 const createChatForm = document.getElementById("createChatPanel");
 const newChatName = document.getElementById("newChatName");
-const newChatUsers = document.getElementById("newChatUsers");
+const newChatUserList = document.getElementById("newChatUserList");
 
 const chatTitle = document.getElementById("chatTitle");
 const messages = document.getElementById("messages");
@@ -46,8 +49,12 @@ const messageInput = document.getElementById("messageInput");
 
 const settingsDialog = document.getElementById("settingsDialog");
 const settingsForm = document.getElementById("settingsForm");
+const avatarFileInput = document.getElementById("avatarFileInput");
 const avatarUrlInput = document.getElementById("avatarUrlInput");
-const profileBgInput = document.getElementById("profileBgInput");
+const bgRedInput = document.getElementById("bgRedInput");
+const bgGreenInput = document.getElementById("bgGreenInput");
+const bgBlueInput = document.getElementById("bgBlueInput");
+const profileBgPreview = document.getElementById("profileBgPreview");
 const avatarBorderInput = document.getElementById("avatarBorderInput");
 
 loginTab.addEventListener("click", () => switchMode("login"));
@@ -61,6 +68,10 @@ logoutBtn.addEventListener("click", logout);
 createChatForm.addEventListener("submit", handleCreateChat);
 composer.addEventListener("submit", handleMessageSend);
 settingsForm.addEventListener("submit", saveSettings);
+
+[bgRedInput, bgGreenInput, bgBlueInput].forEach((input) => {
+  input.addEventListener("input", updateRgbPreview);
+});
 
 hydrateSession();
 render();
@@ -77,16 +88,38 @@ function persistDB() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
 }
 
+function normalizeDB() {
+  db.users = Array.isArray(db.users) ? db.users : [];
+  db.chats = Array.isArray(db.chats) ? db.chats : [];
+
+  for (const user of db.users) {
+    user.status = user.status || {};
+    user.status.isOnline = Boolean(user.status.isOnline);
+    user.status.lastSeenAt = user.status.lastSeenAt || Date.now();
+
+    user.profile = user.profile || {};
+    user.profile.avatarUrl = user.profile.avatarUrl || DEFAULT_AVATAR;
+    user.profile.avatarBorder = user.profile.avatarBorder || "#c77dff";
+    if (!user.profile.profileBgRgb) {
+      user.profile.profileBgRgb = { ...DEFAULT_PROFILE_BG_RGB };
+    }
+  }
+}
+
 function seedDB() {
   if (db.users.length > 0) return;
 
   const alice = makeUser("neonadmin", "1234", {
     avatarUrl: DEFAULT_AVATAR,
     avatarBorder: "#c77dff",
-    profileBg:
-      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=900&q=80",
+    profileBgRgb: { r: 47, g: 22, b: 85 },
   });
-  const bob = makeUser("cyberguest", "1234", { avatarUrl: DEFAULT_AVATAR });
+  const bob = makeUser("cyberguest", "1234", {
+    avatarUrl: DEFAULT_AVATAR,
+    profileBgRgb: { r: 28, g: 14, b: 48 },
+  });
+  bob.status.isOnline = true;
+
   db.users.push(alice, bob);
 
   const chat = {
@@ -111,10 +144,14 @@ function makeUser(username, password, profile = {}) {
     id: crypto.randomUUID(),
     username,
     password,
+    status: {
+      isOnline: false,
+      lastSeenAt: Date.now(),
+    },
     profile: {
       avatarUrl: profile.avatarUrl || DEFAULT_AVATAR,
-      profileBg: profile.profileBg || "",
       avatarBorder: profile.avatarBorder || "#c77dff",
+      profileBgRgb: profile.profileBgRgb || { ...DEFAULT_PROFILE_BG_RGB },
     },
   };
 }
@@ -142,9 +179,7 @@ function handleAuth(event) {
     }
     const user = makeUser(username, password);
     db.users.push(user);
-    db.sessionUserId = user.id;
-    persistDB();
-    state.currentUserId = user.id;
+    setCurrentSession(user.id);
     authForm.reset();
     render();
     return;
@@ -155,18 +190,35 @@ function handleAuth(event) {
     return;
   }
 
-  db.sessionUserId = existing.id;
-  persistDB();
-  state.currentUserId = existing.id;
+  setCurrentSession(existing.id);
   authForm.reset();
   render();
+}
+
+function setCurrentSession(userId) {
+  for (const user of db.users) {
+    user.status.isOnline = user.id === userId;
+    if (!user.status.isOnline) {
+      user.status.lastSeenAt = Date.now();
+    }
+  }
+
+  const current = db.users.find((user) => user.id === userId);
+  if (current) {
+    current.status.isOnline = true;
+  }
+
+  db.sessionUserId = userId;
+  state.currentUserId = userId;
+  persistDB();
 }
 
 function hydrateSession() {
   if (!db.sessionUserId) return;
   const user = db.users.find((entry) => entry.id === db.sessionUserId);
   if (!user) return;
-  state.currentUserId = user.id;
+
+  setCurrentSession(user.id);
 }
 
 function getCurrentUser() {
@@ -174,6 +226,12 @@ function getCurrentUser() {
 }
 
 function logout() {
+  const user = getCurrentUser();
+  if (user) {
+    user.status.isOnline = false;
+    user.status.lastSeenAt = Date.now();
+  }
+
   db.sessionUserId = null;
   persistDB();
   state.currentUserId = null;
@@ -188,14 +246,26 @@ function switchSidebarPanel(panel) {
   chatListPanel.classList.toggle("hidden", !showChats);
   createChatPanel.classList.toggle("hidden", showChats);
   createChatHint.textContent = "";
+
+  if (!showChats) {
+    renderCreateChatUserList();
+  }
 }
 
 function openSettings() {
   const user = getCurrentUser();
   if (!user) return;
+
   avatarUrlInput.value = user.profile.avatarUrl || "";
-  profileBgInput.value = user.profile.profileBg || "";
+  avatarFileInput.value = "";
   avatarBorderInput.value = user.profile.avatarBorder || "#c77dff";
+
+  const rgb = user.profile.profileBgRgb || { ...DEFAULT_PROFILE_BG_RGB };
+  bgRedInput.value = rgb.r;
+  bgGreenInput.value = rgb.g;
+  bgBlueInput.value = rgb.b;
+  updateRgbPreview();
+
   settingsDialog.showModal();
 }
 
@@ -204,13 +274,72 @@ function saveSettings(event) {
   const user = getCurrentUser();
   if (!user) return;
 
-  user.profile.avatarUrl = avatarUrlInput.value.trim() || DEFAULT_AVATAR;
-  user.profile.profileBg = profileBgInput.value.trim();
-  user.profile.avatarBorder = avatarBorderInput.value || "#c77dff";
+  const directUrl = avatarUrlInput.value.trim();
+  const file = avatarFileInput.files?.[0];
 
-  persistDB();
-  settingsDialog.close();
-  renderProfile();
+  const applyAndClose = () => {
+    user.profile.avatarBorder = avatarBorderInput.value || "#c77dff";
+    user.profile.profileBgRgb = {
+      r: Number(bgRedInput.value),
+      g: Number(bgGreenInput.value),
+      b: Number(bgBlueInput.value),
+    };
+
+    persistDB();
+    settingsDialog.close();
+    renderProfile();
+    renderChats();
+    renderMessages();
+  };
+
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      user.profile.avatarUrl = typeof reader.result === "string" ? reader.result : DEFAULT_AVATAR;
+      if (directUrl) {
+        user.profile.avatarUrl = directUrl;
+      }
+      applyAndClose();
+    };
+    reader.readAsDataURL(file);
+    return;
+  }
+
+  user.profile.avatarUrl = directUrl || user.profile.avatarUrl || DEFAULT_AVATAR;
+  applyAndClose();
+}
+
+function updateRgbPreview() {
+  const value = `rgb(${bgRedInput.value}, ${bgGreenInput.value}, ${bgBlueInput.value})`;
+  profileBgPreview.textContent = value;
+  profileBgPreview.style.background = value;
+}
+
+function renderCreateChatUserList() {
+  const currentUser = getCurrentUser();
+  if (!currentUser) return;
+
+  const options = db.users.filter((user) => user.id !== currentUser.id);
+  newChatUserList.innerHTML = "";
+
+  if (options.length === 0) {
+    newChatUserList.innerHTML = '<p class="muted">Нет доступных пользователей.</p>';
+    return;
+  }
+
+  for (const user of options) {
+    const label = document.createElement("label");
+    label.className = "user-select-item";
+    const statusClass = user.status.isOnline ? "online" : "offline";
+
+    label.innerHTML = `
+      <input type="checkbox" name="chatUser" value="${escapeHtml(user.id)}" />
+      <span>${escapeHtml(user.username)}</span>
+      <span class="status-dot ${statusClass}"></span>
+    `;
+
+    newChatUserList.appendChild(label);
+  }
 }
 
 function handleCreateChat(event) {
@@ -224,23 +353,16 @@ function handleCreateChat(event) {
     return;
   }
 
-  const usernames = newChatUsers.value
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
+  const selectedIds = Array.from(newChatUserList.querySelectorAll('input[name="chatUser"]:checked')).map(
+    (entry) => entry.value,
+  );
 
-  const memberIds = [user.id];
-  for (const username of usernames) {
-    const found = db.users.find((entry) => entry.username === username);
-    if (found && !memberIds.includes(found.id)) {
-      memberIds.push(found.id);
-    }
-  }
-
-  if (memberIds.length < 2) {
-    createChatHint.textContent = "Добавьте хотя бы одного существующего пользователя.";
+  if (selectedIds.length === 0) {
+    createChatHint.textContent = "Выберите хотя бы одного пользователя.";
     return;
   }
+
+  const memberIds = [user.id, ...selectedIds.filter((id) => db.users.some((entry) => entry.id === id))];
 
   const chat = {
     id: crypto.randomUUID(),
@@ -254,6 +376,7 @@ function handleCreateChat(event) {
 
   state.currentChatId = chat.id;
   createChatForm.reset();
+  renderCreateChatUserList();
   switchSidebarPanel("chats");
   renderChats();
   renderMessages();
@@ -277,6 +400,7 @@ function handleMessageSend(event) {
     createdAt: Date.now(),
   });
 
+  user.status.isOnline = true;
   persistDB();
   composer.reset();
   renderMessages();
@@ -301,14 +425,12 @@ function renderProfile() {
   if (!user) return;
 
   profileName.textContent = user.username;
+  profileStatus.innerHTML = `<span class="status-dot online"></span>В сети`;
   avatarImage.src = user.profile.avatarUrl || DEFAULT_AVATAR;
   avatarFrame.style.setProperty("--avatar-border", user.profile.avatarBorder || "#c77dff");
 
-  if (user.profile.profileBg) {
-    profileCard.style.setProperty("--profile-bg", `url('${user.profile.profileBg}')`);
-  } else {
-    profileCard.style.setProperty("--profile-bg", "linear-gradient(120deg, #2f1655, #10091d)");
-  }
+  const rgb = user.profile.profileBgRgb || { ...DEFAULT_PROFILE_BG_RGB };
+  profileCard.style.setProperty("--profile-bg", `linear-gradient(120deg, rgb(${rgb.r}, ${rgb.g}, ${rgb.b}), #10091d)`);
 }
 
 function getCurrentUserChats() {
@@ -338,12 +460,16 @@ function renderChats() {
     button.className = "chat-item";
     button.classList.toggle("active", chat.id === state.currentChatId);
 
-    const participantNames = chat.memberIds
-      .map((id) => db.users.find((u) => u.id === id)?.username)
+    const participants = chat.memberIds
+      .map((id) => db.users.find((u) => u.id === id))
       .filter(Boolean)
-      .join(", ");
+      .map((member) => {
+        const dot = `<span class="status-dot ${member.status.isOnline ? "online" : "offline"}"></span>`;
+        return `${dot}${escapeHtml(member.username)}`;
+      })
+      .join(" ");
 
-    button.innerHTML = `<strong>${escapeHtml(chat.name)}</strong><br><small>${escapeHtml(participantNames)}</small>`;
+    button.innerHTML = `<strong>${escapeHtml(chat.name)}</strong><br><small class="chat-participants">${participants}</small>`;
     button.addEventListener("click", () => {
       state.currentChatId = chat.id;
       renderChats();
@@ -376,15 +502,44 @@ function renderMessages() {
     bubble.className = "bubble";
     bubble.classList.toggle("outgoing", msg.userId === state.currentUserId);
     bubble.classList.toggle("incoming", msg.userId !== state.currentUserId);
-    bubble.innerHTML = `<small>${escapeHtml(author?.username || "unknown")}</small>${escapeHtml(msg.text)}`;
+
+    const statusText = author?.status?.isOnline ? "в сети" : `не в сети • ${formatLastSeen(author?.status?.lastSeenAt)}`;
+    bubble.innerHTML = `
+      <small>${escapeHtml(author?.username || "unknown")} · ${statusText}</small>
+      <p>${escapeHtml(msg.text)}</p>
+      <time>${formatMessageDate(msg.createdAt)}</time>
+    `;
     messages.appendChild(bubble);
   }
 
   messages.scrollTop = messages.scrollHeight;
 }
 
+function formatMessageDate(value) {
+  const date = new Date(value);
+  return date.toLocaleString("ru-RU", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatLastSeen(value) {
+  if (!value) return "давно";
+  const date = new Date(value);
+  return date.toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function escapeHtml(value) {
   return value
+    .toString()
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
