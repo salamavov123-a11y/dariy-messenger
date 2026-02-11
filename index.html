@@ -13,22 +13,14 @@
     <main class="app-shell">
       <section id="authScreen" class="auth-screen glass-card">
         <h1>Dariy<span>Messenger</span></h1>
-        <p class="muted">Неоновый мессенджер в фиолетово-чёрных оттенках</p>
-
+        <p class="muted">Клиент с функционалом в стиле Telegram</p>
         <div class="auth-tabs">
           <button id="loginTab" class="tab-btn active" type="button">Вход</button>
           <button id="registerTab" class="tab-btn" type="button">Регистрация</button>
         </div>
-
         <form id="authForm" class="stack-form">
-          <label>
-            Логин
-            <input id="authUsername" required minlength="3" maxlength="20" />
-          </label>
-          <label>
-            Пароль
-            <input id="authPassword" type="password" required minlength="4" maxlength="50" />
-          </label>
+          <label>Логин <input id="authUsername" required minlength="3" maxlength="20" /></label>
+          <label>Пароль <input id="authPassword" type="password" required minlength="4" maxlength="50" /></label>
           <button id="authSubmit" class="primary" type="submit">Войти</button>
         </form>
         <p id="authHint" class="hint"></p>
@@ -37,13 +29,11 @@
       <section id="chatApp" class="chat-app hidden">
         <aside class="sidebar">
           <div id="profileCard" class="profile-card">
-            <div id="avatarFrame" class="avatar-frame">
-              <img id="avatarImage" alt="Аватар" src="https://images.unsplash.com/photo-1614283233556-f35b0c801ef1?auto=format&fit=crop&w=200&q=80" />
-            </div>
+            <div id="avatarFrame" class="avatar-frame"><img id="avatarImage" alt="Аватар" src="" /></div>
             <div>
               <p class="muted">Пользователь</p>
               <h2 id="profileName">—</h2>
-              <p id="profileStatus" class="user-status"><span class="status-dot online"></span>В сети</p>
+              <p id="profileStatus" class="user-status"></p>
             </div>
           </div>
 
@@ -56,19 +46,16 @@
           </div>
 
           <div id="chatListPanel" class="panel-block">
+            <input id="chatSearchInput" placeholder="Поиск чатов и людей..." />
             <h3>Список чатов</h3>
             <div id="chatList" class="chat-list"></div>
-
             <h3>Личные сообщения</h3>
             <div id="peopleList" class="chat-list"></div>
           </div>
 
           <form id="createChatPanel" class="panel-block hidden stack-form compact">
             <h3>Новый чат</h3>
-            <label>
-              Название чата
-              <input id="newChatName" required maxlength="36" />
-            </label>
+            <label>Название чата <input id="newChatName" required maxlength="36" /></label>
             <fieldset>
               <legend>Выберите участников</legend>
               <div id="newChatUserList" class="user-select-list"></div>
@@ -79,13 +66,11 @@
         </aside>
 
         <section class="chat-window">
-          <header class="chat-header">
-            <h3 id="chatTitle">Выберите чат</h3>
-          </header>
-
+          <header class="chat-header"><h3 id="chatTitle">Выберите чат</h3></header>
           <div id="messages" class="messages"></div>
 
           <form id="composer" class="composer">
+            <div id="replyPreview" class="reply-preview hidden"></div>
             <input id="messageInput" type="text" placeholder="Напишите сообщение..." maxlength="300" />
             <input id="mediaInput" type="file" accept="image/*,audio/*" />
             <button id="recordVoiceBtn" class="ghost" type="button">🎙️ Голос</button>
@@ -99,14 +84,8 @@
     <dialog id="settingsDialog" class="settings-dialog">
       <form id="settingsForm" class="stack-form" method="dialog">
         <h3>Настройки профиля</h3>
-        <label>
-          Загрузить аватар (файл)
-          <input id="avatarFileInput" type="file" accept="image/*" />
-        </label>
-        <label>
-          Или ссылка на аватар
-          <input id="avatarUrlInput" placeholder="https://..." />
-        </label>
+        <label>Загрузить аватар (файл) <input id="avatarFileInput" type="file" accept="image/*" /></label>
+        <label>Или ссылка на аватар <input id="avatarUrlInput" placeholder="https://..." /></label>
         <fieldset>
           <legend>Фон карточки профиля (RGB)</legend>
           <div class="rgb-grid">
@@ -116,10 +95,7 @@
           </div>
           <p id="profileBgPreview" class="rgb-preview">rgb(47, 22, 85)</p>
         </fieldset>
-        <label>
-          Цвет рамки аватара
-          <input id="avatarBorderInput" type="color" value="#c77dff" />
-        </label>
+        <label>Цвет рамки аватара <input id="avatarBorderInput" type="color" value="#c77dff" /></label>
         <div class="dialog-actions">
           <button class="ghost" value="cancel">Отмена</button>
           <button class="primary" id="saveSettingsBtn" value="default">Сохранить</button>
@@ -132,9 +108,7 @@
         <h3>Профиль пользователя</h3>
         <div id="profileViewCard" class="profile-card"></div>
         <p id="profileViewMeta" class="muted"></p>
-        <div class="dialog-actions">
-          <button id="closeProfileViewBtn" class="primary" type="button">Закрыть</button>
-        </div>
+        <div class="dialog-actions"><button id="closeProfileViewBtn" class="primary" type="button">Закрыть</button></div>
       </div>
     </dialog>
 

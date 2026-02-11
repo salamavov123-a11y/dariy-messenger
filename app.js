@@ -1,13 +1,14 @@
 const STORAGE_KEY = "dariyMessengerDB";
-const DEFAULT_AVATAR =
-  "https://images.unsplash.com/photo-1614283233556-f35b0c801ef1?auto=format&fit=crop&w=200&q=80";
+const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1614283233556-f35b0c801ef1?auto=format&fit=crop&w=200&q=80";
 const DEFAULT_PROFILE_BG_RGB = { r: 47, g: 22, b: 85 };
 
 const state = {
   mode: "login",
   currentUserId: null,
   currentChatId: null,
+  searchQuery: "",
   pendingVoiceDataUrl: null,
+  replyToMessageId: null,
   mediaRecorder: null,
   mediaChunks: [],
 };
@@ -16,59 +17,62 @@ const db = loadDB();
 normalizeDB();
 seedDB();
 
-const authScreen = document.getElementById("authScreen");
-const chatApp = document.getElementById("chatApp");
-const loginTab = document.getElementById("loginTab");
-const registerTab = document.getElementById("registerTab");
-const authForm = document.getElementById("authForm");
-const authSubmit = document.getElementById("authSubmit");
-const authHint = document.getElementById("authHint");
-const authUsername = document.getElementById("authUsername");
-const authPassword = document.getElementById("authPassword");
+const $ = (id) => document.getElementById(id);
+const authScreen = $("authScreen");
+const chatApp = $("chatApp");
+const loginTab = $("loginTab");
+const registerTab = $("registerTab");
+const authForm = $("authForm");
+const authSubmit = $("authSubmit");
+const authHint = $("authHint");
+const authUsername = $("authUsername");
+const authPassword = $("authPassword");
 
-const profileName = document.getElementById("profileName");
-const profileStatus = document.getElementById("profileStatus");
-const profileCard = document.getElementById("profileCard");
-const avatarImage = document.getElementById("avatarImage");
-const avatarFrame = document.getElementById("avatarFrame");
+const profileName = $("profileName");
+const profileStatus = $("profileStatus");
+const profileCard = $("profileCard");
+const avatarImage = $("avatarImage");
+const avatarFrame = $("avatarFrame");
 
-const chatsBtn = document.getElementById("chatsBtn");
-const createChatBtn = document.getElementById("createChatBtn");
-const settingsBtn = document.getElementById("settingsBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-const exitAppBtn = document.getElementById("exitAppBtn");
-const chatListPanel = document.getElementById("chatListPanel");
-const createChatPanel = document.getElementById("createChatPanel");
-const chatList = document.getElementById("chatList");
-const peopleList = document.getElementById("peopleList");
-const createChatHint = document.getElementById("createChatHint");
+const chatsBtn = $("chatsBtn");
+const createChatBtn = $("createChatBtn");
+const settingsBtn = $("settingsBtn");
+const logoutBtn = $("logoutBtn");
+const exitAppBtn = $("exitAppBtn");
+const chatListPanel = $("chatListPanel");
+const createChatPanel = $("createChatPanel");
+const chatSearchInput = $("chatSearchInput");
+const chatList = $("chatList");
+const peopleList = $("peopleList");
+const createChatHint = $("createChatHint");
 
-const createChatForm = document.getElementById("createChatPanel");
-const newChatName = document.getElementById("newChatName");
-const newChatUserList = document.getElementById("newChatUserList");
+const createChatForm = $("createChatPanel");
+const newChatName = $("newChatName");
+const newChatUserList = $("newChatUserList");
 
-const chatTitle = document.getElementById("chatTitle");
-const messages = document.getElementById("messages");
-const composer = document.getElementById("composer");
-const messageInput = document.getElementById("messageInput");
-const mediaInput = document.getElementById("mediaInput");
-const composerHint = document.getElementById("composerHint");
-const recordVoiceBtn = document.getElementById("recordVoiceBtn");
+const chatTitle = $("chatTitle");
+const messages = $("messages");
+const composer = $("composer");
+const messageInput = $("messageInput");
+const mediaInput = $("mediaInput");
+const composerHint = $("composerHint");
+const recordVoiceBtn = $("recordVoiceBtn");
+const replyPreview = $("replyPreview");
 
-const settingsDialog = document.getElementById("settingsDialog");
-const settingsForm = document.getElementById("settingsForm");
-const avatarFileInput = document.getElementById("avatarFileInput");
-const avatarUrlInput = document.getElementById("avatarUrlInput");
-const bgRedInput = document.getElementById("bgRedInput");
-const bgGreenInput = document.getElementById("bgGreenInput");
-const bgBlueInput = document.getElementById("bgBlueInput");
-const profileBgPreview = document.getElementById("profileBgPreview");
-const avatarBorderInput = document.getElementById("avatarBorderInput");
+const settingsDialog = $("settingsDialog");
+const settingsForm = $("settingsForm");
+const avatarFileInput = $("avatarFileInput");
+const avatarUrlInput = $("avatarUrlInput");
+const bgRedInput = $("bgRedInput");
+const bgGreenInput = $("bgGreenInput");
+const bgBlueInput = $("bgBlueInput");
+const profileBgPreview = $("profileBgPreview");
+const avatarBorderInput = $("avatarBorderInput");
 
-const profileViewDialog = document.getElementById("profileViewDialog");
-const profileViewCard = document.getElementById("profileViewCard");
-const profileViewMeta = document.getElementById("profileViewMeta");
-const closeProfileViewBtn = document.getElementById("closeProfileViewBtn");
+const profileViewDialog = $("profileViewDialog");
+const profileViewCard = $("profileViewCard");
+const profileViewMeta = $("profileViewMeta");
+const closeProfileViewBtn = $("closeProfileViewBtn");
 
 loginTab.addEventListener("click", () => switchMode("login"));
 registerTab.addEventListener("click", () => switchMode("register"));
@@ -79,15 +83,19 @@ createChatBtn.addEventListener("click", () => switchSidebarPanel("create"));
 settingsBtn.addEventListener("click", openSettings);
 logoutBtn.addEventListener("click", logout);
 exitAppBtn.addEventListener("click", () => window.close());
+chatSearchInput.addEventListener("input", () => {
+  state.searchQuery = chatSearchInput.value.trim().toLowerCase();
+  renderChats();
+  renderPeople();
+});
+
 createChatForm.addEventListener("submit", handleCreateChat);
 composer.addEventListener("submit", handleMessageSend);
 settingsForm.addEventListener("submit", saveSettings);
 recordVoiceBtn.addEventListener("click", handleVoiceRecordToggle);
 closeProfileViewBtn.addEventListener("click", () => profileViewDialog.close());
 
-[bgRedInput, bgGreenInput, bgBlueInput].forEach((input) => {
-  input.addEventListener("input", updateRgbPreview);
-});
+[bgRedInput, bgGreenInput, bgBlueInput].forEach((input) => input.addEventListener("input", updateRgbPreview));
 
 hydrateSession();
 render();
@@ -99,7 +107,6 @@ function loadDB() {
     return { users: [], chats: [], sessionUserId: null };
   }
 }
-
 function persistDB() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
 }
@@ -112,7 +119,6 @@ function normalizeDB() {
     user.status = user.status || {};
     user.status.isOnline = Boolean(user.status.isOnline);
     user.status.lastSeenAt = user.status.lastSeenAt || Date.now();
-
     user.profile = user.profile || {};
     user.profile.avatarUrl = user.profile.avatarUrl || DEFAULT_AVATAR;
     user.profile.avatarBorder = user.profile.avatarBorder || "#c77dff";
@@ -124,24 +130,19 @@ function normalizeDB() {
     chat.messages = Array.isArray(chat.messages) ? chat.messages : [];
     for (const msg of chat.messages) {
       msg.type = msg.type || "text";
+      msg.seenBy = Array.isArray(msg.seenBy) ? msg.seenBy : [msg.userId];
     }
   }
 }
 
 function seedDB() {
   if (db.users.length > 0) return;
-
-  const admin = makeUser("neonadmin", "1234", {
-    avatarUrl: DEFAULT_AVATAR,
-    avatarBorder: "#c77dff",
-    profileBgRgb: { r: 47, g: 22, b: 85 },
-  });
+  const admin = makeUser("neonadmin", "1234", { avatarUrl: DEFAULT_AVATAR });
   const guest = makeUser("cyberguest", "1234", {
     avatarUrl: "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&w=200&q=80",
     profileBgRgb: { r: 28, g: 14, b: 48 },
   });
   guest.status.isOnline = true;
-
   db.users.push(admin, guest);
   persistDB();
 }
@@ -151,10 +152,7 @@ function makeUser(username, password, profile = {}) {
     id: crypto.randomUUID(),
     username,
     password,
-    status: {
-      isOnline: false,
-      lastSeenAt: Date.now(),
-    },
+    status: { isOnline: false, lastSeenAt: Date.now() },
     profile: {
       avatarUrl: profile.avatarUrl || DEFAULT_AVATAR,
       avatarBorder: profile.avatarBorder || "#c77dff",
@@ -178,25 +176,16 @@ function handleAuth(event) {
   if (!username || !password) return;
 
   const existing = db.users.find((user) => user.username === username);
-
   if (state.mode === "register") {
-    if (existing) {
-      authHint.textContent = "Такой логин уже существует.";
-      return;
-    }
+    if (existing) return (authHint.textContent = "Такой логин уже существует.");
     const user = makeUser(username, password);
     db.users.push(user);
     setCurrentSession(user.id);
     authForm.reset();
-    render();
-    return;
+    return render();
   }
 
-  if (!existing || existing.password !== password) {
-    authHint.textContent = "Неверный логин или пароль.";
-    return;
-  }
-
+  if (!existing || existing.password !== password) return (authHint.textContent = "Неверный логин или пароль.");
   setCurrentSession(existing.id);
   authForm.reset();
   render();
@@ -205,23 +194,16 @@ function handleAuth(event) {
 function setCurrentSession(userId) {
   for (const user of db.users) {
     user.status.isOnline = user.id === userId;
-    if (!user.status.isOnline) {
-      user.status.lastSeenAt = Date.now();
-    }
+    if (!user.status.isOnline) user.status.lastSeenAt = Date.now();
   }
-
   db.sessionUserId = userId;
   state.currentUserId = userId;
   persistDB();
 }
-
 function hydrateSession() {
-  if (!db.sessionUserId) return;
-  const user = db.users.find((entry) => entry.id === db.sessionUserId);
-  if (!user) return;
-  setCurrentSession(user.id);
+  const user = db.users.find((u) => u.id === db.sessionUserId);
+  if (user) setCurrentSession(user.id);
 }
-
 function getCurrentUser() {
   return db.users.find((user) => user.id === state.currentUserId) || null;
 }
@@ -232,11 +214,11 @@ function logout() {
     user.status.isOnline = false;
     user.status.lastSeenAt = Date.now();
   }
-
   db.sessionUserId = null;
   persistDB();
   state.currentUserId = null;
   state.currentChatId = null;
+  state.replyToMessageId = null;
   render();
 }
 
@@ -247,24 +229,20 @@ function switchSidebarPanel(panel) {
   chatListPanel.classList.toggle("hidden", !showChats);
   createChatPanel.classList.toggle("hidden", showChats);
   createChatHint.textContent = "";
-
   if (!showChats) renderCreateChatUserList();
 }
 
 function openSettings() {
   const user = getCurrentUser();
   if (!user) return;
-
   avatarUrlInput.value = user.profile.avatarUrl || "";
   avatarFileInput.value = "";
   avatarBorderInput.value = user.profile.avatarBorder || "#c77dff";
-
   const rgb = user.profile.profileBgRgb || { ...DEFAULT_PROFILE_BG_RGB };
   bgRedInput.value = rgb.r;
   bgGreenInput.value = rgb.g;
   bgBlueInput.value = rgb.b;
   updateRgbPreview();
-
   settingsDialog.showModal();
 }
 
@@ -272,22 +250,15 @@ function saveSettings(event) {
   event.preventDefault();
   const user = getCurrentUser();
   if (!user) return;
-
   const directUrl = avatarUrlInput.value.trim();
   const file = avatarFileInput.files?.[0];
 
-  const applyAndClose = () => {
+  const apply = () => {
     user.profile.avatarBorder = avatarBorderInput.value || "#c77dff";
-    user.profile.profileBgRgb = {
-      r: Number(bgRedInput.value),
-      g: Number(bgGreenInput.value),
-      b: Number(bgBlueInput.value),
-    };
-
+    user.profile.profileBgRgb = { r: Number(bgRedInput.value), g: Number(bgGreenInput.value), b: Number(bgBlueInput.value) };
     persistDB();
     settingsDialog.close();
     renderProfile();
-    renderChats();
     renderPeople();
     renderMessages();
   };
@@ -297,14 +268,13 @@ function saveSettings(event) {
     reader.onload = () => {
       user.profile.avatarUrl = typeof reader.result === "string" ? reader.result : DEFAULT_AVATAR;
       if (directUrl) user.profile.avatarUrl = directUrl;
-      applyAndClose();
+      apply();
     };
-    reader.readAsDataURL(file);
-    return;
+    return reader.readAsDataURL(file);
   }
 
   user.profile.avatarUrl = directUrl || user.profile.avatarUrl || DEFAULT_AVATAR;
-  applyAndClose();
+  apply();
 }
 
 function updateRgbPreview() {
@@ -316,23 +286,13 @@ function updateRgbPreview() {
 function renderCreateChatUserList() {
   const currentUser = getCurrentUser();
   if (!currentUser) return;
-
-  const options = db.users.filter((user) => user.id !== currentUser.id);
   newChatUserList.innerHTML = "";
-
-  if (options.length === 0) {
-    newChatUserList.innerHTML = '<p class="muted">Нет доступных пользователей.</p>';
-    return;
-  }
-
-  for (const user of options) {
+  for (const user of db.users.filter((u) => u.id !== currentUser.id)) {
     const label = document.createElement("label");
     label.className = "user-select-item";
-    label.innerHTML = `
-      <input type="checkbox" name="chatUser" value="${escapeHtml(user.id)}" />
-      <span>${escapeHtml(user.username)}</span>
-      <span class="status-dot ${user.status.isOnline ? "online" : "offline"}"></span>
-    `;
+    label.innerHTML = `<input type="checkbox" name="chatUser" value="${user.id}" /><span>${escapeHtml(user.username)}</span><span class="status-dot ${
+      user.status.isOnline ? "online" : "offline"
+    }"></span>`;
     newChatUserList.appendChild(label);
   }
 }
@@ -341,35 +301,15 @@ function handleCreateChat(event) {
   event.preventDefault();
   const user = getCurrentUser();
   if (!user) return;
-
   const title = newChatName.value.trim();
-  if (!title) {
-    createChatHint.textContent = "Введите название чата.";
-    return;
-  }
+  if (!title) return (createChatHint.textContent = "Введите название чата.");
 
-  const selectedIds = Array.from(newChatUserList.querySelectorAll('input[name="chatUser"]:checked')).map(
-    (entry) => entry.value,
-  );
+  const selectedIds = Array.from(newChatUserList.querySelectorAll('input[name="chatUser"]:checked')).map((i) => i.value);
+  if (!selectedIds.length) return (createChatHint.textContent = "Выберите хотя бы одного пользователя.");
 
-  if (selectedIds.length === 0) {
-    createChatHint.textContent = "Выберите хотя бы одного пользователя.";
-    return;
-  }
-
-  const memberIds = [user.id, ...selectedIds.filter((id) => db.users.some((entry) => entry.id === id))];
-
-  const chat = {
-    id: crypto.randomUUID(),
-    name: title,
-    memberIds,
-    isDirect: false,
-    messages: [],
-  };
-
+  const chat = { id: crypto.randomUUID(), name: title, memberIds: [user.id, ...selectedIds], isDirect: false, messages: [] };
   db.chats.push(chat);
   persistDB();
-
   state.currentChatId = chat.id;
   createChatForm.reset();
   renderCreateChatUserList();
@@ -381,58 +321,30 @@ function handleCreateChat(event) {
 function getOrCreateDirectChat(withUserId) {
   const currentUser = getCurrentUser();
   if (!currentUser) return null;
-
-  let chat = db.chats.find((entry) => {
-    if (!entry.isDirect) return false;
-    const ids = [...entry.memberIds].sort();
-    const need = [currentUser.id, withUserId].sort();
-    return ids.length === 2 && ids[0] === need[0] && ids[1] === need[1];
-  });
-
+  let chat = db.chats.find((c) => c.isDirect && c.memberIds.includes(currentUser.id) && c.memberIds.includes(withUserId) && c.memberIds.length === 2);
   if (!chat) {
-    const peer = db.users.find((user) => user.id === withUserId);
+    const peer = db.users.find((u) => u.id === withUserId);
     if (!peer) return null;
-    chat = {
-      id: crypto.randomUUID(),
-      name: `ЛС: ${peer.username}`,
-      memberIds: [currentUser.id, withUserId],
-      isDirect: true,
-      messages: [],
-    };
+    chat = { id: crypto.randomUUID(), name: `ЛС: ${peer.username}`, memberIds: [currentUser.id, withUserId], isDirect: true, messages: [] };
     db.chats.push(chat);
     persistDB();
   }
-
   return chat;
 }
 
 function renderPeople() {
   const currentUser = getCurrentUser();
   if (!currentUser) return;
-
-  peopleList.innerHTML = "";
-  const users = db.users.filter((user) => user.id !== currentUser.id);
-
-  if (users.length === 0) {
-    peopleList.innerHTML = '<p class="muted">Пока нет других пользователей.</p>';
-    return;
-  }
+  const query = state.searchQuery;
+  const users = db.users.filter((u) => u.id !== currentUser.id && u.username.toLowerCase().includes(query));
+  peopleList.innerHTML = users.length ? "" : '<p class="muted">Пользователи не найдены.</p>';
 
   for (const user of users) {
     const card = document.createElement("div");
     card.className = "person-card";
-    card.innerHTML = `
-      <div>
-        <strong>${escapeHtml(user.username)}</strong>
-        <p class="muted"><span class="status-dot ${user.status.isOnline ? "online" : "offline"}"></span>${
-      user.status.isOnline ? "В сети" : "Не в сети"
-    }</p>
-      </div>
-      <div class="person-actions">
-        <button type="button" class="ghost">Профиль</button>
-        <button type="button" class="primary">Написать</button>
-      </div>
-    `;
+    card.innerHTML = `<div><strong>${escapeHtml(user.username)}</strong><p class="muted"><span class="status-dot ${
+      user.status.isOnline ? "online" : "offline"
+    }"></span>${user.status.isOnline ? "В сети" : "Не в сети"}</p></div><div class="person-actions"><button type="button" class="ghost">Профиль</button><button type="button" class="primary">Написать</button></div>`;
 
     const [profileBtn, writeBtn] = card.querySelectorAll("button");
     profileBtn.addEventListener("click", () => openProfileView(user.id));
@@ -443,132 +355,107 @@ function renderPeople() {
       renderChats();
       renderMessages();
     });
-
     peopleList.appendChild(card);
   }
 }
 
 function openProfileView(userId) {
-  const user = db.users.find((item) => item.id === userId);
+  const user = db.users.find((u) => u.id === userId);
   if (!user) return;
-
   const rgb = user.profile.profileBgRgb || { ...DEFAULT_PROFILE_BG_RGB };
-  profileViewCard.innerHTML = `
-    <div class="avatar-frame" style="--avatar-border:${escapeHtml(user.profile.avatarBorder)}">
-      <img src="${escapeHtml(user.profile.avatarUrl || DEFAULT_AVATAR)}" alt="avatar" />
-    </div>
-    <div>
-      <p class="muted">Пользователь</p>
-      <h2>${escapeHtml(user.username)}</h2>
-      <p class="user-status"><span class="status-dot ${user.status.isOnline ? "online" : "offline"}"></span>${
-    user.status.isOnline ? "В сети" : "Не в сети"
-  }</p>
-    </div>
-  `;
+  profileViewCard.innerHTML = `<div class="avatar-frame" style="--avatar-border:${escapeHtml(user.profile.avatarBorder)}"><img src="${escapeHtml(
+    user.profile.avatarUrl || DEFAULT_AVATAR,
+  )}" alt="avatar" /></div><div><p class="muted">Пользователь</p><h2>${escapeHtml(user.username)}</h2><p class="user-status"><span class="status-dot ${
+    user.status.isOnline ? "online" : "offline"
+  }"></span>${user.status.isOnline ? "В сети" : "Не в сети"}</p></div>`;
   profileViewCard.style.setProperty("--profile-bg", `linear-gradient(120deg, rgb(${rgb.r}, ${rgb.g}, ${rgb.b}), #10091d)`);
-  profileViewMeta.textContent = user.status.isOnline
-    ? "Пользователь сейчас онлайн"
-    : `Последний онлайн: ${formatLastSeen(user.status.lastSeenAt)}`;
-
+  profileViewMeta.textContent = user.status.isOnline ? "Пользователь сейчас онлайн" : `Последний онлайн: ${formatLastSeen(user.status.lastSeenAt)}`;
   profileViewDialog.showModal();
 }
 
+function setReply(messageId) {
+  state.replyToMessageId = messageId;
+  const msg = getCurrentChat()?.messages.find((m) => m.id === messageId);
+  if (!msg) return clearReply();
+  replyPreview.classList.remove("hidden");
+  replyPreview.innerHTML = `Ответ: ${escapeHtml(msg.text || msg.fileName || "медиа")}
+    <button type="button" class="ghost" id="cancelReplyBtn">Отмена</button>`;
+  document.getElementById("cancelReplyBtn").addEventListener("click", clearReply);
+}
+function clearReply() {
+  state.replyToMessageId = null;
+  replyPreview.classList.add("hidden");
+  replyPreview.innerHTML = "";
+}
+
 async function handleVoiceRecordToggle() {
-  if (state.mediaRecorder && state.mediaRecorder.state === "recording") {
+  if (state.mediaRecorder?.state === "recording") {
     state.mediaRecorder.stop();
     recordVoiceBtn.textContent = "🎙️ Голос";
     return;
   }
-
-  if (!navigator.mediaDevices?.getUserMedia) {
-    composerHint.textContent = "Запись голоса не поддерживается в этом окружении.";
-    return;
-  }
-
+  if (!navigator.mediaDevices?.getUserMedia) return (composerHint.textContent = "Запись голоса не поддерживается.");
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream);
+    const rec = new MediaRecorder(stream);
     state.mediaChunks = [];
-    state.mediaRecorder = recorder;
-
-    recorder.addEventListener("dataavailable", (event) => {
-      if (event.data.size > 0) state.mediaChunks.push(event.data);
-    });
-
-    recorder.addEventListener("stop", () => {
+    state.mediaRecorder = rec;
+    rec.addEventListener("dataavailable", (e) => e.data.size && state.mediaChunks.push(e.data));
+    rec.addEventListener("stop", () => {
       const blob = new Blob(state.mediaChunks, { type: "audio/webm" });
-      const reader = new FileReader();
-      reader.onload = () => {
-        state.pendingVoiceDataUrl = typeof reader.result === "string" ? reader.result : null;
-        composerHint.textContent = state.pendingVoiceDataUrl
-          ? "Голосовое сообщение готово к отправке."
-          : "Не удалось обработать голосовое сообщение.";
+      const fr = new FileReader();
+      fr.onload = () => {
+        state.pendingVoiceDataUrl = typeof fr.result === "string" ? fr.result : null;
+        composerHint.textContent = state.pendingVoiceDataUrl ? "Голосовое готово к отправке" : "Ошибка голосового";
       };
-      reader.readAsDataURL(blob);
-      stream.getTracks().forEach((track) => track.stop());
+      fr.readAsDataURL(blob);
+      stream.getTracks().forEach((t) => t.stop());
     });
-
-    recorder.start();
+    rec.start();
     recordVoiceBtn.textContent = "⏹ Остановить";
     composerHint.textContent = "Идёт запись...";
   } catch {
-    composerHint.textContent = "Не удалось получить доступ к микрофону.";
+    composerHint.textContent = "Нет доступа к микрофону.";
   }
 }
 
 function handleMessageSend(event) {
   event.preventDefault();
   const user = getCurrentUser();
-  if (!user || !state.currentChatId) return;
-
-  const chat = db.chats.find((entry) => entry.id === state.currentChatId);
-  if (!chat) return;
+  const chat = getCurrentChat();
+  if (!user || !chat) return;
 
   const text = messageInput.value.trim();
   const file = mediaInput.files?.[0] || null;
+  if (!text && !file && !state.pendingVoiceDataUrl) return (composerHint.textContent = "Добавьте текст/фото/голосовое");
 
-  if (!text && !file && !state.pendingVoiceDataUrl) {
-    composerHint.textContent = "Добавьте текст, фото или голосовое сообщение.";
-    return;
-  }
+  if (text) chat.messages.push(makeMessage(user.id, { type: "text", text, replyToId: state.replyToMessageId }));
 
-  if (text) {
-    chat.messages.push(makeMessage(user.id, { type: "text", text }));
-  }
-
-  const finishSending = () => {
-    user.status.isOnline = true;
+  const finish = () => {
+    markSelfOnline(user);
     persistDB();
     composer.reset();
     state.pendingVoiceDataUrl = null;
     composerHint.textContent = "";
+    clearReply();
     renderMessages();
+    renderChats();
   };
 
   if (file) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      if (file.type.startsWith("image/")) {
-        chat.messages.push(makeMessage(user.id, { type: "image", fileDataUrl: result, fileName: file.name }));
-      } else if (file.type.startsWith("audio/")) {
-        chat.messages.push(makeMessage(user.id, { type: "audio", fileDataUrl: result, fileName: file.name }));
-      }
-
-      if (state.pendingVoiceDataUrl) {
-        chat.messages.push(makeMessage(user.id, { type: "audio", fileDataUrl: state.pendingVoiceDataUrl, fileName: "voice.webm" }));
-      }
-      finishSending();
+    const fr = new FileReader();
+    fr.onload = () => {
+      const result = typeof fr.result === "string" ? fr.result : "";
+      if (file.type.startsWith("image/")) chat.messages.push(makeMessage(user.id, { type: "image", fileDataUrl: result, fileName: file.name, replyToId: state.replyToMessageId }));
+      else if (file.type.startsWith("audio/")) chat.messages.push(makeMessage(user.id, { type: "audio", fileDataUrl: result, fileName: file.name, replyToId: state.replyToMessageId }));
+      if (state.pendingVoiceDataUrl) chat.messages.push(makeMessage(user.id, { type: "audio", fileDataUrl: state.pendingVoiceDataUrl, fileName: "voice.webm", replyToId: state.replyToMessageId }));
+      finish();
     };
-    reader.readAsDataURL(file);
-    return;
+    return fr.readAsDataURL(file);
   }
 
-  if (state.pendingVoiceDataUrl) {
-    chat.messages.push(makeMessage(user.id, { type: "audio", fileDataUrl: state.pendingVoiceDataUrl, fileName: "voice.webm" }));
-  }
-
-  finishSending();
+  if (state.pendingVoiceDataUrl) chat.messages.push(makeMessage(user.id, { type: "audio", fileDataUrl: state.pendingVoiceDataUrl, fileName: "voice.webm", replyToId: state.replyToMessageId }));
+  finish();
 }
 
 function makeMessage(userId, payload) {
@@ -579,8 +466,26 @@ function makeMessage(userId, payload) {
     text: payload.text || "",
     fileDataUrl: payload.fileDataUrl || "",
     fileName: payload.fileName || "",
+    replyToId: payload.replyToId || null,
     createdAt: Date.now(),
+    seenBy: [userId],
   };
+}
+
+function getCurrentChat() {
+  return db.chats.find((c) => c.id === state.currentChatId) || null;
+}
+
+function markChatSeen(chat) {
+  const me = getCurrentUser();
+  if (!me || !chat) return;
+  for (const msg of chat.messages) {
+    if (!msg.seenBy.includes(me.id)) msg.seenBy.push(me.id);
+  }
+}
+
+function markSelfOnline(user) {
+  user.status.isOnline = true;
 }
 
 function render() {
@@ -588,9 +493,7 @@ function render() {
   const isAuthed = Boolean(user);
   authScreen.classList.toggle("hidden", isAuthed);
   chatApp.classList.toggle("hidden", !isAuthed);
-
   if (!isAuthed) return;
-
   renderProfile();
   switchSidebarPanel("chats");
   renderChats();
@@ -601,66 +504,55 @@ function render() {
 function renderProfile() {
   const user = getCurrentUser();
   if (!user) return;
-
   profileName.textContent = user.username;
   profileStatus.innerHTML = `<span class="status-dot online"></span>В сети`;
   avatarImage.src = user.profile.avatarUrl || DEFAULT_AVATAR;
   avatarFrame.style.setProperty("--avatar-border", user.profile.avatarBorder || "#c77dff");
-
   const rgb = user.profile.profileBgRgb || { ...DEFAULT_PROFILE_BG_RGB };
   profileCard.style.setProperty("--profile-bg", `linear-gradient(120deg, rgb(${rgb.r}, ${rgb.g}, ${rgb.b}), #10091d)`);
 }
 
 function getCurrentUserChats() {
-  const user = getCurrentUser();
-  if (!user) return [];
-  return db.chats.filter((chat) => chat.memberIds.includes(user.id));
+  const me = getCurrentUser();
+  if (!me) return [];
+  return db.chats.filter((chat) => chat.memberIds.includes(me.id));
 }
 
 function renderChats() {
-  const userChats = getCurrentUserChats();
+  const chats = getCurrentUserChats().filter((chat) => {
+    const q = state.searchQuery;
+    if (!q) return true;
+    const names = chat.memberIds.map((id) => db.users.find((u) => u.id === id)?.username || "").join(" ").toLowerCase();
+    return chat.name.toLowerCase().includes(q) || names.includes(q);
+  });
+
   chatList.innerHTML = "";
-
-  if (!state.currentChatId && userChats[0]) {
-    state.currentChatId = userChats[0].id;
-  }
-
-  if (userChats.length === 0) {
-    chatList.innerHTML = '<p class="muted">У вас пока нет чатов.</p>';
-    chatTitle.textContent = "Нет активного чата";
-    messages.innerHTML = '<p class="muted">Создайте чат или начните личное сообщение.</p>';
+  if (!state.currentChatId && chats[0]) state.currentChatId = chats[0].id;
+  if (!chats.length) {
+    chatList.innerHTML = '<p class="muted">Чаты не найдены.</p>';
     return;
   }
 
-  for (const chat of userChats) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "chat-item";
-    button.classList.toggle("active", chat.id === state.currentChatId);
-
-    const participants = chat.memberIds
-      .map((id) => db.users.find((u) => u.id === id))
-      .filter(Boolean)
-      .map((member) => {
-        const dot = `<span class="status-dot ${member.status.isOnline ? "online" : "offline"}"></span>`;
-        return `${dot}${escapeHtml(member.username)}`;
-      })
-      .join(" ");
-
-    button.innerHTML = `<strong>${escapeHtml(chat.name)}</strong><br><small class="chat-participants">${participants}</small>`;
-    button.addEventListener("click", () => {
+  for (const chat of chats) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chat-item";
+    btn.classList.toggle("active", chat.id === state.currentChatId);
+    const last = chat.messages.at(-1);
+    const preview = last ? (last.text || (last.type === "image" ? "📷 Фото" : "🎵 Аудио")) : "Нет сообщений";
+    btn.innerHTML = `<strong>${escapeHtml(chat.name)}</strong><br><small>${escapeHtml(preview)}</small>`;
+    btn.addEventListener("click", () => {
       state.currentChatId = chat.id;
       renderChats();
       renderMessages();
     });
-    chatList.appendChild(button);
+    chatList.appendChild(btn);
   }
 }
 
 function renderMessages() {
-  const chat = db.chats.find((entry) => entry.id === state.currentChatId);
+  const chat = getCurrentChat();
   messages.innerHTML = "";
-
   if (!chat) {
     chatTitle.textContent = "Выберите чат";
     messages.innerHTML = '<p class="muted">Чат не выбран.</p>';
@@ -668,28 +560,29 @@ function renderMessages() {
   }
 
   chatTitle.textContent = chat.name;
+  markChatSeen(chat);
+  persistDB();
 
-  if (chat.messages.length === 0) {
+  if (!chat.messages.length) {
     messages.innerHTML = '<p class="muted">Пока нет сообщений.</p>';
     return;
   }
 
   for (const msg of chat.messages) {
-    const author = db.users.find((user) => user.id === msg.userId);
+    const author = db.users.find((u) => u.id === msg.userId);
     const bubble = document.createElement("article");
-    bubble.className = "bubble";
-    bubble.classList.toggle("outgoing", msg.userId === state.currentUserId);
-    bubble.classList.toggle("incoming", msg.userId !== state.currentUserId);
+    bubble.className = `bubble ${msg.userId === state.currentUserId ? "outgoing" : "incoming"}`;
 
-    const statusText = author?.status?.isOnline ? "в сети" : `не в сети • ${formatLastSeen(author?.status?.lastSeenAt)}`;
-    bubble.innerHTML = `<small>${escapeHtml(author?.username || "unknown")} · ${statusText}</small>`;
+    const replied = msg.replyToId ? chat.messages.find((m) => m.id === msg.replyToId) : null;
+    const replyHtml = replied ? `<div class="reply-quote">↪ ${escapeHtml(replied.text || replied.fileName || "медиа")}</div>` : "";
+
+    bubble.innerHTML = `<small>${escapeHtml(author?.username || "unknown")} · ${author?.status?.isOnline ? "в сети" : `не в сети • ${formatLastSeen(author?.status?.lastSeenAt)}`}</small>${replyHtml}`;
 
     if (msg.type === "image" && msg.fileDataUrl) {
-      const image = document.createElement("img");
-      image.src = msg.fileDataUrl;
-      image.alt = msg.fileName || "photo";
-      image.className = "message-photo";
-      bubble.appendChild(image);
+      const img = document.createElement("img");
+      img.src = msg.fileDataUrl;
+      img.className = "message-photo";
+      bubble.appendChild(img);
     } else if (msg.type === "audio" && msg.fileDataUrl) {
       const audio = document.createElement("audio");
       audio.controls = true;
@@ -699,15 +592,23 @@ function renderMessages() {
     }
 
     if (msg.text) {
-      const text = document.createElement("p");
-      text.textContent = msg.text;
-      bubble.appendChild(text);
+      const p = document.createElement("p");
+      p.textContent = msg.text;
+      bubble.appendChild(p);
     }
 
+    const me = getCurrentUser();
+    const deliveredToAll = chat.memberIds.every((id) => msg.seenBy.includes(id));
     const time = document.createElement("time");
-    time.textContent = formatMessageDate(msg.createdAt);
-    bubble.appendChild(time);
+    time.textContent = `${formatMessageDate(msg.createdAt)} ${msg.userId === me?.id ? (deliveredToAll ? "✓✓" : "✓") : ""}`;
 
+    const replyBtn = document.createElement("button");
+    replyBtn.type = "button";
+    replyBtn.className = "ghost inline-btn";
+    replyBtn.textContent = "↩";
+    replyBtn.addEventListener("click", () => setReply(msg.id));
+
+    bubble.append(time, replyBtn);
     messages.appendChild(bubble);
   }
 
@@ -715,33 +616,12 @@ function renderMessages() {
 }
 
 function formatMessageDate(value) {
-  const date = new Date(value);
-  return date.toLocaleString("ru-RU", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return new Date(value).toLocaleString("ru-RU", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
-
 function formatLastSeen(value) {
   if (!value) return "давно";
-  const date = new Date(value);
-  return date.toLocaleString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return new Date(value).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
-
 function escapeHtml(value) {
-  return value
-    .toString()
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  return value.toString().replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 }
