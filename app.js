@@ -92,6 +92,8 @@ function normalizeDB() {
   db.users = Array.isArray(db.users) ? db.users : [];
   db.chats = Array.isArray(db.chats) ? db.chats : [];
 
+  db.chats = db.chats.filter((chat) => !isLegacyGeneralChat(chat));
+
   for (const user of db.users) {
     user.status = user.status || {};
     user.status.isOnline = Boolean(user.status.isOnline);
@@ -121,22 +123,16 @@ function seedDB() {
   bob.status.isOnline = true;
 
   db.users.push(alice, bob);
-
-  const chat = {
-    id: crypto.randomUUID(),
-    name: "Общий неоновый чат",
-    memberIds: [alice.id, bob.id],
-    messages: [
-      {
-        id: crypto.randomUUID(),
-        userId: bob.id,
-        text: "Привет! Зарегистрируйся или войди, чтобы писать в чаты.",
-        createdAt: Date.now(),
-      },
-    ],
-  };
-  db.chats.push(chat);
   persistDB();
+}
+
+function isLegacyGeneralChat(chat) {
+  if (!chat || chat.name !== "Общий неоновый чат") return false;
+  if (!Array.isArray(chat.memberIds) || chat.memberIds.length !== 2) return false;
+  if (!Array.isArray(chat.messages) || chat.messages.length !== 1) return false;
+
+  const [message] = chat.messages;
+  return message.text === "Привет! Зарегистрируйся или войди, чтобы писать в чаты.";
 }
 
 function makeUser(username, password, profile = {}) {

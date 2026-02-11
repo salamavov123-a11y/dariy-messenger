@@ -5,10 +5,12 @@ function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 820,
-    minWidth: 980,
-    minHeight: 680,
     autoHideMenuBar: true,
-    backgroundColor: "#08050e",
+    frame: false,
+    transparent: true,
+    resizable: false,
+    maximizable: false,
+    backgroundColor: "#00000000",
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
