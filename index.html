@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dariy Messenger — Neon</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="glow glow-top"></div>
+    <div class="glow glow-bottom"></div>
+
+    <main class="app-shell">
+      <section id="authScreen" class="auth-screen glass-card">
+        <h1>Dariy<span>Messenger</span></h1>
+        <p class="muted">Клиент с функционалом в стиле Telegram</p>
+        <div class="auth-tabs">
+          <button id="loginTab" class="tab-btn active" type="button">Вход</button>
+          <button id="registerTab" class="tab-btn" type="button">Регистрация</button>
+        </div>
+        <form id="authForm" class="stack-form">
+          <label>Логин <input id="authUsername" required minlength="3" maxlength="20" /></label>
+          <label>Пароль <input id="authPassword" type="password" required minlength="4" maxlength="50" /></label>
+          <button id="authSubmit" class="primary" type="submit">Войти</button>
+        </form>
+        <p id="authHint" class="hint"></p>
+      </section>
+
+      <section id="chatApp" class="chat-app hidden">
+        <aside class="sidebar">
+          <div id="profileCard" class="profile-card">
+            <div id="avatarFrame" class="avatar-frame"><img id="avatarImage" alt="Аватар" src="" /></div>
+            <div>
+              <p class="muted">Пользователь</p>
+              <h2 id="profileName">—</h2>
+              <p id="profileStatus" class="user-status"></p>
+            </div>
+          </div>
+
+          <div class="sidebar-actions">
+            <button id="chatsBtn" class="side-btn active" type="button">Чаты</button>
+            <button id="createChatBtn" class="side-btn" type="button">Создать чат</button>
+            <button id="settingsBtn" class="side-btn" type="button">Настройки</button>
+            <button id="logoutBtn" class="side-btn danger" type="button">Выйти из аккаунта</button>
+          </div>
+
+          <div id="chatListPanel" class="panel-block">
+            <input id="chatSearchInput" placeholder="Поиск чатов и людей..." />
+            <h3>Список чатов</h3>
+            <div id="chatList" class="chat-list"></div>
+            <h3>Личные сообщения</h3>
+            <div id="peopleList" class="chat-list"></div>
+          </div>
+
+          <form id="createChatPanel" class="panel-block hidden stack-form compact">
+            <h3>Новый чат</h3>
+            <label>Название чата <input id="newChatName" required maxlength="36" /></label>
+            <fieldset>
+              <legend>Выберите участников</legend>
+              <div id="newChatUserList" class="user-select-list"></div>
+            </fieldset>
+            <button class="primary" type="submit">Создать</button>
+            <p id="createChatHint" class="hint"></p>
+          </form>
+          <button id="exitAppBtn" class="side-btn danger sidebar-exit" type="button">Выход</button>
+
+        </aside>
+
+        <section class="chat-window">
+          <header class="chat-header"><h3 id="chatTitle">Выберите чат</h3></header>
+          <div id="messages" class="messages"></div>
+          <button id="scrollToBottomBtn" class="scroll-bottom-btn hidden" type="button">⬇ Новые сообщения</button>
+
+          <form id="composer" class="composer">
+            <div id="replyPreview" class="reply-preview hidden"></div>
+            <input id="messageInput" type="text" placeholder="Напишите сообщение..." maxlength="300" />
+            <input id="mediaInput" type="file" accept="image/*,audio/*" />
+            <button id="recordVoiceBtn" class="ghost" type="button">🎙️ Голос</button>
+            <button class="primary" type="submit">Отправить</button>
+          </form>
+          <p id="composerHint" class="hint"></p>
+        </section>
+      </section>
+    </main>
+
+    <dialog id="settingsDialog" class="settings-dialog">
+      <form id="settingsForm" class="stack-form" method="dialog">
+        <h3>Настройки профиля</h3>
+        <label>Загрузить аватар (файл) <input id="avatarFileInput" type="file" accept="image/*" /></label>
+        <label>Или ссылка на аватар <input id="avatarUrlInput" placeholder="https://..." /></label>
+        <fieldset>
+          <legend>Фон карточки профиля (RGB)</legend>
+          <div class="rgb-grid">
+            <label>R <input id="bgRedInput" type="range" min="0" max="255" value="47" /></label>
+            <label>G <input id="bgGreenInput" type="range" min="0" max="255" value="22" /></label>
+            <label>B <input id="bgBlueInput" type="range" min="0" max="255" value="85" /></label>
+          </div>
+          <p id="profileBgPreview" class="rgb-preview">rgb(47, 22, 85)</p>
+        </fieldset>
+        <label>Цвет рамки аватара <input id="avatarBorderInput" type="color" value="#c77dff" /></label>
+        <div class="dialog-actions">
+          <button class="ghost" value="cancel">Отмена</button>
+          <button class="primary" id="saveSettingsBtn" value="default">Сохранить</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="profileViewDialog" class="settings-dialog">
+      <div class="stack-form profile-view-content">
+        <h3>Профиль пользователя</h3>
+        <div id="profileViewCard" class="profile-card"></div>
+        <p id="profileViewMeta" class="muted"></p>
+        <div class="dialog-actions"><button id="closeProfileViewBtn" class="primary" type="button">Закрыть</button></div>
+      </div>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
