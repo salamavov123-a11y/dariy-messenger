@@ -1,0 +1,16 @@
+{
+  "name": "dariy-messenger",
+  "version": "1.0.0",
+  "description": "Neon violet-black messenger desktop app",
+  "main": "main.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-packager . DariyMessenger --platform=win32 --arch=x64 --out=dist --overwrite --asar"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-packager": "^17.1.2"
+  }
+}

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dariy Messenger — Neon</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="glow glow-top"></div>
+    <div class="glow glow-bottom"></div>
+
+    <main class="app-shell">
+      <section id="authScreen" class="auth-screen glass-card">
+        <h1>Dariy<span>Messenger</span></h1>
+        <p class="muted">Неоновый мессенджер в фиолетово-чёрных оттенках</p>
+
+        <div class="auth-tabs">
+          <button id="loginTab" class="tab-btn active" type="button">Вход</button>
+          <button id="registerTab" class="tab-btn" type="button">Регистрация</button>
+        </div>
+
+        <form id="authForm" class="stack-form">
+          <label>
+            Логин
+            <input id="authUsername" required minlength="3" maxlength="20" />
+          </label>
+          <label>
+            Пароль
+            <input id="authPassword" type="password" required minlength="4" maxlength="50" />
+          </label>
+          <button id="authSubmit" class="primary" type="submit">Войти</button>
+        </form>
+        <p id="authHint" class="hint"></p>
+      </section>
+
+      <section id="chatApp" class="chat-app hidden">
+        <aside class="sidebar">
+          <div id="profileCard" class="profile-card">
+            <div id="avatarFrame" class="avatar-frame">
+              <img id="avatarImage" alt="Аватар" src="https://images.unsplash.com/photo-1614283233556-f35b0c801ef1?auto=format&fit=crop&w=200&q=80" />
+            </div>
+            <div>
+              <p class="muted">Пользователь</p>
+              <h2 id="profileName">—</h2>
+            </div>
+          </div>
+
+          <div class="sidebar-actions">
+            <button id="chatsBtn" class="side-btn active" type="button">Чаты</button>
+            <button id="createChatBtn" class="side-btn" type="button">Создать чат</button>
+            <button id="settingsBtn" class="side-btn" type="button">Настройки</button>
+            <button id="logoutBtn" class="side-btn danger" type="button">Выйти</button>
+          </div>
+
+          <div id="chatListPanel" class="panel-block">
+            <h3>Список чатов</h3>
+            <div id="chatList" class="chat-list"></div>
+          </div>
+
+          <form id="createChatPanel" class="panel-block hidden stack-form compact">
+            <h3>Новый чат</h3>
+            <label>
+              Название чата
+              <input id="newChatName" required maxlength="36" />
+            </label>
+            <label>
+              Участники (логины через запятую)
+              <input id="newChatUsers" placeholder="например: anna, ivan" />
+            </label>
+            <button class="primary" type="submit">Создать</button>
+            <p id="createChatHint" class="hint"></p>
+          </form>
+        </aside>
+
+        <section class="chat-window">
+          <header class="chat-header">
+            <h3 id="chatTitle">Выберите чат</h3>
+          </header>
+
+          <div id="messages" class="messages"></div>
+
+          <form id="composer" class="composer">
+            <input id="messageInput" type="text" placeholder="Напишите сообщение..." maxlength="300" required />
+            <button class="primary" type="submit">Отправить</button>
+          </form>
+        </section>
+      </section>
+    </main>
+
+    <dialog id="settingsDialog" class="settings-dialog">
+      <form id="settingsForm" class="stack-form" method="dialog">
+        <h3>Настройки профиля</h3>
+        <label>
+          Ссылка на аватар
+          <input id="avatarUrlInput" placeholder="https://..." />
+        </label>
+        <label>
+          Ссылка на фон профиля
+          <input id="profileBgInput" placeholder="https://..." />
+        </label>
+        <label>
+          Цвет рамки аватара
+          <input id="avatarBorderInput" type="color" value="#c77dff" />
+        </label>
+        <div class="dialog-actions">
+          <button class="ghost" value="cancel">Отмена</button>
+          <button class="primary" id="saveSettingsBtn" value="default">Сохранить</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
