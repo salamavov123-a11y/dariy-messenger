@@ -4,6 +4,17 @@ const { Server } = require("socket.io");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const multer = require("multer");
+const path = require("path");
+
+/* ================== CONFIG ================== */
+
+const PORT = process.env.PORT || 3000;
+
+mongoose.connect(
+  "mongodb+srv://dariy:1Aa%40123888@cluster0.buqpj0z.mongodb.net/dariy_messenger?retryWrites=true&w=majority"
+);
+
+/* ================== APP ================== */
 
 const app = express();
 app.use(cors());
@@ -11,128 +22,121 @@ app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
-
-/* ===== MongoDB ===== */
-mongoose.connect("mongodb://127.0.0.1:27017/dariy_messenger");
-
-/* ===== SCHEMAS ===== */
-
-const User = mongoose.model(
-  "User",
-  new mongoose.Schema({
-    username: { type: String, unique: true },
-    password: String,
-    avatar: String,
-  })
-);
-
-const Chat = mongoose.model(
-  "Chat",
-  new mongoose.Schema({
-    name: String,
-    users: [String],
-    isGroup: Boolean,
-  })
-);
-
-const Message = mongoose.model(
-  "Message",
-  new mongoose.Schema({
-    chatId: String,
-    user: String,
-    text: String,
-    createdAt: { type: Date, default: Date.now },
-  })
-);
-
-/* ===== FILE UPLOAD ===== */
-
-const upload = multer({ dest: "uploads/" });
-
-app.post("/avatar/:username", upload.single("avatar"), async (req, res) => {
-  const user = await User.findOneAndUpdate(
-    { username: req.params.username },
-    { avatar: req.file.filename },
-    { new: true }
-  );
-  res.json(user);
+const io = new Server(server, {
+  cors: { origin: "*" },
 });
 
-/* ===== AUTH ===== */
+/* ================== STORAGE (avatars) ================== */
+
+const storage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage });
+
+/* ================== SCHEMAS ================== */
+
+const UserSchema = new mongoose.Schema({
+  username: String,
+  password: String,
+  avatar: String,
+});
+
+const ChatSchema = new mongoose.Schema({
+  users: [String],
+  isGroup: Boolean,
+  name: String,
+});
+
+const MessageSchema = new mongoose.Schema({
+  chatId: String,
+  user: String,
+  text: String,
+  createdAt: { type: Date, default: Date.now },
+});
+
+const User = mongoose.model("User", UserSchema);
+const Chat = mongoose.model("Chat", ChatSchema);
+const Message = mongoose.model("Message", MessageSchema);
+
+/* ================== AUTH ================== */
 
 app.post("/register", async (req, res) => {
   const { username, password } = req.body;
 
-  if (await User.findOne({ username }))
-    return res.status(400).json({ error: "User exists" });
+  const exists = await User.findOne({ username });
+  if (exists) return res.status(400).json({ error: "User exists" });
 
-  res.json(await User.create({ username, password }));
+  const user = await User.create({ username, password });
+  res.json(user);
 });
 
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
   const user = await User.findOne({ username, password });
-  if (!user) return res.status(400).json({ error: "Invalid credentials" });
+  if (!user) return res.status(400).json({ error: "Invalid login" });
 
   res.json(user);
 });
 
-/* ===== USERS ===== */
+/* ================== AVATAR ================== */
 
-app.get("/users", async (req, res) => {
-  res.json(await User.find({}, { password: 0 }));
+app.post("/avatar/:username", upload.single("avatar"), async (req, res) => {
+  await User.updateOne(
+    { username: req.params.username },
+    { avatar: `/uploads/${req.file.filename}` }
+  );
+
+  res.json({ ok: true });
 });
 
-/* ===== PRIVATE CHAT ===== */
+/* ================== CHATS ================== */
 
-app.post("/chat", async (req, res) => {
-  const { user1, user2 } = req.body;
+app.get("/chats/:username", async (req, res) => {
+  const chats = await Chat.find({ users: req.params.username });
+  res.json(chats);
+});
 
-  let chat = await Chat.findOne({
-    isGroup: false,
-    users: { $all: [user1, user2], $size: 2 },
+app.post("/group", async (req, res) => {
+  const { name, users } = req.body;
+
+  const chat = await Chat.create({
+    name,
+    users,
+    isGroup: true,
   });
-
-  if (!chat)
-    chat = await Chat.create({ users: [user1, user2], isGroup: false });
 
   res.json(chat);
 });
 
-/* ===== CREATE GROUP ===== */
-
-app.post("/group", async (req, res) => {
-  const { name, users } = req.body;
-  res.json(await Chat.create({ name, users, isGroup: true }));
-});
-
-/* ===== USER CHATS ===== */
-
-app.get("/chats/:username", async (req, res) => {
-  res.json(await Chat.find({ users: req.params.username }));
-});
-
-/* ===== MESSAGES ===== */
+/* ================== MESSAGES ================== */
 
 app.get("/messages/:chatId", async (req, res) => {
-  res.json(await Message.find({ chatId: req.params.chatId }));
+  const msgs = await Message.find({ chatId: req.params.chatId }).sort("createdAt");
+  res.json(msgs);
 });
 
-/* ===== SOCKET ===== */
+/* ================== SOCKET ================== */
 
 io.on("connection", (socket) => {
-  socket.on("join", (chatId) => socket.join(chatId));
+  console.log("User connected");
 
-  socket.on("send_message", async (data) => {
-    const msg = await Message.create(data);
-    io.to(data.chatId).emit("new_message", msg);
+  socket.on("join", (chatId) => {
+    socket.join(chatId);
+  });
+
+  socket.on("send_message", async (msg) => {
+    const saved = await Message.create(msg);
+    io.to(msg.chatId).emit("new_message", saved);
   });
 });
 
-/* ===== START ===== */
+/* ================== START ================== */
 
-server.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
+server.listen(PORT, () => {
+  console.log("Server running on port " + PORT);
 });
